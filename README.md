@@ -1,2 +1,3 @@
-# test
-a test repo
+# My first test repo
+
+Hello world!
