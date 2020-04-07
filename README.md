@@ -11,9 +11,9 @@ No merge conflicts here.
 
 
 
-# Git shell commmands
+## Git shell commmands
 
-Clone the repo
+Clone the repo.
 `$ git clone REPOSITORY-URL`
 
 See the commit history (hit spacebar to scroll down or q to exit).
