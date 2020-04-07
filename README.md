@@ -9,9 +9,23 @@ Now there's a script file too.
 No merge conflicts here.
 
 
+## Git
 
+### 4 main Git commands
 
-## Git shell commmands
+1. Stage (or "add")
+  + Tell Git that you want to add changes to the repo history (file edits, additions, deletions, etc.)
+
+2. Commit
+  + Tell Git that, yes, you are sure these changes should be part of the repo history.
+
+3. Pull
+  + Get any new changes made on the GitHub repo (i.e. the upstream remote), either by your collaborators or you on another machine.
+
+4. Push
+  + Push any (commited) local changes to the GitHub repo
+
+### Git shell commmands
 
 Clone the repo.
 `$ git clone REPOSITORY-URL`
