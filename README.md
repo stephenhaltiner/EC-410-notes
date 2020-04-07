@@ -2,42 +2,27 @@
 
 Hello world!
 
-Another line of text.
+# How we will use Git
 
-Now there's a script file too.
+1. Create a repo on GitHub and initialize with a README.
+2. `$ git clone REPOSITORY-URL` Clone the repo to your local machine. Preferably using an RStudio Project.
+3. `$ git add -A` Stage any changes you make
+4. `$ git commit -m "Helpful message"` Commit your changes
+5. `$ git pull` Pull from GitHub
+6. Fix any merge conflicts.
+7.`$ git push` Push your changes to GitHub
+Repeat steps 3—7 (but especially steps 3 and 4) often.
 
-No merge conflicts here.
+### Tracking changes
+* `$ git log` See the commit history (hit spacebar to scroll down or q to exit).
+* `$ git status` See what has changed.
 
+### Staging files
+* `$ git add NAME-OF-FILE-OR-FOLDER` Stage ("add") a file or group of files.
+  + You can use wildcard characters to stage a group of files (e.g. sharing a common prefix). There are a bunch of useful flag options too:
+    - `$ git add -A` Stage all files.
+    - `$ git add -u` Stage updated files only (modified or deleted, but not new).
+    - `$ git add .` Stage new files only (not updated).
 
-## Git
-
-### 4 main Git commands
-
-1. **Stage (or "add"):** Tell Git that you want to add changes to the repo history (file edits, additions, deletions, etc.)
-2. **Commit:** Tell Git that, yes, you are sure these changes should be part of the repo history.
-3. **Pull:** Get any new changes made on the GitHub repo (i.e. the upstream remote), either by your collaborators or you on another machine.
-4. **Push:** Push any (commited) local changes to the GitHub repo
-
-### Git shell commmands
-
-* Clone the repo.
-`$ git clone REPOSITORY-URL`
-* See the commit history (hit spacebar to scroll down or q to exit).
-`$ git log`
-* What has changed?
-`$ git status`
-* Stage ("add") a file or group of files.
-`$ git add NAME-OF-FILE-OR-FOLDER`
-+ You can use wildcard characters to stage a group of files (e.g. sharing a common prefix). There are a bunch of useful flag options too:
-  - `$ git add -A` Stage all files.
-  - `$ git add -u` Stage updated files only (modified or deleted, but not new).
-  - `$ git add .` Stage new files only (not updated).
-
-* Commit your changes.
-`$ git commit -m "Helpful message"`
-* Pull from the upstream repository (i.e. GitHub).
-`$ git pull`
-* Push any local changes that you've commited to the upstream repo (i.e. GitHub).
-`$ git push`
 
 
