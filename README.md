@@ -28,11 +28,10 @@ No merge conflicts here.
 `$ git status`
 * Stage ("add") a file or group of files.
 `$ git add NAME-OF-FILE-OR-FOLDER`
-
-You can use wildcard characters to stage a group of files (e.g. sharing a common prefix). There are a bunch of useful flag options too:
-    + `$ git add -A` Stage all files.
-    + `$ git add -u` Stage updated files only (modified or deleted, but not new).
-    + `$ git add .` Stage new files only (not updated).
++ You can use wildcard characters to stage a group of files (e.g. sharing a common prefix). There are a bunch of useful flag options too:
+  - `$ git add -A` Stage all files.
+  - `$ git add -u` Stage updated files only (modified or deleted, but not new).
+  - `$ git add .` Stage new files only (not updated).
 
 * Commit your changes.
 `$ git commit -m "Helpful message"`
