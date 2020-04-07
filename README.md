@@ -2,7 +2,7 @@
 
 Hello world!
 
-# How we will use Git
+## How we will use Git
 
 1. Create a repo on GitHub and initialize with a README.
 2. `$ git clone REPOSITORY-URL` Clone the repo to your local machine. Preferably using an RStudio Project.
@@ -10,7 +10,7 @@ Hello world!
 4. `$ git commit -m "Helpful message"` Commit your changes
 5. `$ git pull` Pull from GitHub
 6. Fix any merge conflicts.
-7.`$ git push` Push your changes to GitHub
+7. `$ git push` Push your changes to GitHub
 Repeat steps 3—7 (but especially steps 3 and 4) often.
 
 ### Tracking changes
