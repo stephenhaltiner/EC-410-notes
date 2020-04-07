@@ -11,14 +11,14 @@ Hello world!
 5. `$ git pull` Pull from GitHub
 6. Fix any merge conflicts.
 7. `$ git push` Push your changes to GitHub
-* Repeat steps 3-7 (but especially steps 3 and 4) often.
+  Repeat steps 3-7 (but especially steps 3 and 4) often.
 
 ### Tracking changes
 * `$ git log` See the commit history (hit spacebar to scroll down or q to exit).
 * `$ git status` See what has changed.
 
 ### Staging files
-* `$ git add NAME-OF-FILE-OR-FOLDER` Stage ("add") a file or group of files.
+* `$ git add NAME-OF-FILE-OR-FOLDER` Stage ("add") a file or group of files.  
 You can use wildcard characters to stage a group of files (e.g. sharing a common prefix). There are a bunch of useful flag options too:
 * `$ git add -A` Stage all files.
 * `$ git add -u` Stage updated files only (modified or deleted, but not new).
