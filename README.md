@@ -110,9 +110,15 @@ Special characters used as placeholders. The two most important are:
     + `ls examples/meals/??nday.csv` returns monday and sunday
     + `ls examples/meals/?onday.csv` returns monday
 
-### 
+### Find
+
+Locate files and directories based on a variety of criteria, from object properties to pattern matching.
 
 
+* `find . -iname "monday.csv"` searches pwd (recursively) for matching files
+* `find . -iname "*.txt"` searches pwd for any .txt files
+    + `-iname` indicates a case-insensitive search by filename
 
+* `find . -size +100K` finds files larger than 100 KB
 
 
