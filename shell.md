@@ -14,6 +14,13 @@
 [Find patterns](#find-patterns)  
 [Manipulate text](#manipulate-text)  
 [Sorting and removing duplicates](#sorting-and-removing-duplicates)  
+[Redirect](#redirect)
+[Pipes](#pipes)
+[For loops](#for-loops)
+
+
+
+
 
 ### Navigation
 
@@ -166,6 +173,48 @@ becomes
 ### Sorting and removing duplicates
 
 * `sort -u reps.txt` sorts the text file line-by-line and removes duplicate lines. Lines are displayed alphabetically by default.
+
+### Redirect
+
+Send output from the shell to a file using the redirect operator, `>`.  
+
+* `echo "At first, I was afraid, I was petrified" > survive.txt`
+    + `echo` prints text to the shell
+    + `find survive.txt` to see that it now exists  
+    
+* to *append* text to an existing file, use `>>`.
+    + `echo "'Kept thinking I could never live without you by my side" >> survive.txt`
+
+### Pipes
+You can send (i.e. "pipe") intermediate output to another command. This way, you can chain together a sequence of simple operations to create a more complex operation.  
+
+* `cat -n sonnets.txt | head -n 100 | tail -n 10` returns the last 10 lines of the first 100 lines of the whole .txt file (i.e. lines 91-100)  
+
+Use pipes to search through your Bash command history:
+
+* `cat ~/.bash_history | grep head` searches history for "head"
+    + Every shell command you type is stored in a `~/.bash_history` file.
+
+### For loops
+
+Basic syntax:  
+> for i in LIST  
+> do  
+>   OPERATION \$i  
+> done  
+
+Or `for i in LIST; do OPERATION $i; done`
+
+* the `$` sign indicates a variable in bash  
+* e.g. `for i in {1..5}; do echo $i; done` returns `1; 2; 3; 4; 5`
+
+* e.g. `for i in $(ls *day.csv); do tail -n +2 $i >> mealplan.csv; done`
+    + The results are sorted alphabetically by default, but we can fix that in R.
+    + Combining .csv files in the shell this way doesn't require loading all the files into RAM at the same time, which is what would happen if you tried to combine them in R or any other typical program.
+
+### Scripts
+
+
 
 
 
