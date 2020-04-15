@@ -1,6 +1,6 @@
 # Using the Shell
 
-## Shell commands
+### Navigation
 
 * `pwd` to print the current working directory
 * `cd` to change directory
@@ -69,7 +69,9 @@ Arguments:
 ### Rename *en masse*
 
 syntax is `rename pattern replacement file(s)`
-* e.g. 
+
+* e.g. `rename -s csv TXT meals/monday.csv`
+* note: in macOS homebrew, the `rename` command needs the `-s` flag
 
 ### Wildcards
 Special characters used as placeholders. The two most important are:
