@@ -97,4 +97,62 @@ Locate files and directories based on a variety of criteria, from object propert
 
 * `find . -size +100K` finds files larger than 100 KB
 
+### Counting text
+
+* `wc` returns 1) lines of text, 2) number of words, and 3) number of characters
+
+### Reading text
+
+* read everything: `cat` (concatenate)
+    + the `-n` flag shows line numbers
+    
+The `more` and `less` commands provide additional functionality over `cat`. For example, you can move through long text one page at a time.
+
+* Move forward and back with the "f" and "b" keys, and quit with "q".
+
+### Preview text
+
+`head` and `tail` let you preview a specified number of rows, using the `-n` flag (default is 10).
+
+* `head -n 5 sonnets.txt` prints the first 5 rows of text.
+* `tail -n 3 sonnets.txt` prints the last 3 rows.
+* `tail -n +3024 sonnets.txt` prints lines #3024 to the end.
+
+### Find patterns
+Use regular expression-type matching with `grep`
+
+* e.g. `grep -n 'Shall I compare thee' sonnets.txt` returns the full line
+* `-n` (number) returns the line number
+
+You can search multiple files or folders too:
+
+* `grep -Rli 'pasta' /meals`
+* `-R` (recursive) and `l` (just list the files, don't print the output), `-i` (ignore case)
+
+### Manipulate text
+`sed` and `awk`
+
+* `sed -i 's/Jack/Bill/g' nursery.txt` (`-i` is case-insensitive)
+
+`## Jack and Jill`
+
+`## Went up the hill`
+
+becomes
+
+`## Jack and Bill`
+
+`## Went up the hill`
+
+* `sed -e 's/\s/\n/g' < sonnets.txt | sort | uniq -c | sort -nr | head -10`
+    + This uses spaces (`\s`) as delineators for splitting text into separate lines (`\n`)
+    + It works a [little differently](https://unix.stackexchange.com/questions/13711/differences-between-sed-on-mac-osx-and-other-standard-sed) on macOS though.
+
+### Sorting and removing duplicates
+
+* `sort -u reps.txt` sorts the text file line-by-line and removes duplicate lines. Lines are displayed alphabetically by default.
+
+
+
+
 
