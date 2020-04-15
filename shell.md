@@ -1,5 +1,20 @@
 # Using the Shell
 
+[Navigation](#navigation)  
+[List objects in a directory](#list-objects-in-a-directory)  
+[Create files and directories](#create-files-and-directories)
+[Copy objects](#copy-objects)
+[Move (and rename)](#move-\(and-rename\))
+[Rename en masse](#rename-en-masse)
+[Wildcards](#wildcards)
+[Find](#find)
+[Counting text](#counting-text)
+[Reading text](#reading-text)
+[Preview text](#preview-text)
+[Find patterns](#find-patterns)
+[Manipulate text](#manipulate-text)
+[Sorting and removing duplicates](#sorting-and-removing-duplicates)
+
 ### Navigation
 
 * `pwd` to print the current working directory
