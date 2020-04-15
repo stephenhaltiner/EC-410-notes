@@ -17,7 +17,7 @@
 [Redirect](#redirect)
 [Pipes](#pipes)
 [For loops](#for-loops)
-
+[Scripts](#scripts)
 
 
 
@@ -214,8 +214,17 @@ Or `for i in LIST; do OPERATION $i; done`
 
 ### Scripts
 
+Shell scripts have the `.sh` file extension.  
 
+They start with a "shebang": `#!/bin/sh` (indicating which program to run the command with - here, a bash-compatible shell). Shebangs are typically ignored - note it begins with the comment character `#`.  
 
+To run a script, type the relative path of the file. The path is needed, otherwise bash thinks the scriptfile.sh is an internal command.
+
+* e.g. `./hello.sh` runs the script called `hello.sh`.
+
+For editing scripts in the shell, the text editor [nano](www.nano-editor.org) is recommended.
+
+* 
 
 
 
