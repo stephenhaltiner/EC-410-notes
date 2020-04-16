@@ -1,7 +1,5 @@
-# My test repo
+# EC 410 Notes
 
-Hello world!
+[Git](https://github.com/stephenhaltiner/test/blob/master/git.md)
 
-
-
-3. [Using the Shell](https://github.com/stephenhaltiner/test/blob/master/shell.md)
+[Shell](https://github.com/stephenhaltiner/test/blob/master/shell.md)
