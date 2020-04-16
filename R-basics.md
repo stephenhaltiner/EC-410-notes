@@ -1,30 +1,33 @@
 # R Language Basics
 
-- [Introduction](#introduction)
+**Introduction**
+
   * [Arithmetic](#arithmetic)
   * [Logical Operators](#logical-operators)
-    + [Floating-point numbers](#floating-point-numbers)
+    + Floating-point numbers
   * [Assignment](#assignment)
-    + [Assignment with `<-`]
-    + [Assignment with `=`]
+    + Assignment with `<-`
+    + Assignment with `=`
   * [Help](#help)
-    + [Commenting:](#commenting-)
-- [Object-oriented programming in R](#object-oriented-programming-in-r)
+    + Vignettes
+
+**Object-oriented programming in R**
+
   * [Everything is an object](#everything-is-an-object)
-    + [What are objects?](#what-are-objects-)
-    + [Object class, type, and structure](#object-class--type--and-structure)
-    + [Global environment](#global-environment)
-    + [Working with multiple objects](#working-with-multiple-objects)
+    + What are objects?
+    + Object class, type, and structure
+    + Global environment
+    + Working with multiple objects
   * [Everything has a name](#everything-has-a-name)
-    + [Reserved words](#reserved-words)
-    + [Semi-reserved words](#semi-reserved-words)
-    + [Namespace conflicts](#namespace-conflicts)
+    + Reserved words
+    + Semi-reserved words
+    + Namespace conflicts
   * [Indexing](#indexing)
-    + [Option 1: [ ]](#option-1-----)
-    + [Option 2: $](#option-2---)
+    + Option 1: [ ]
+    + Option 2: $]
   * [Cleaning up](#cleaning-up)
-    + [Removing objects (and packages)](#removing-objects--and-packages-)
-    + [Removing plots](#removing-plots)
+    + Removing objects (and packages)
+    + Removing plots
 
 ## Introduction
 
