@@ -2,4 +2,6 @@
 
 Hello world!
 
-Links to class notes will go here soon.
+
+
+3. [Using the Shell](https://github.com/stephenhaltiner/test/blob/master/shell.md)
