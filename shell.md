@@ -14,13 +14,13 @@
 [Find patterns](#find-patterns)  
 [Manipulate text](#manipulate-text)  
 [Sorting and removing duplicates](#sorting-and-removing-duplicates)  
-[Redirect](#redirect)
-[Pipes](#pipes)
-[For loops](#for-loops)
-[Scripts](#scripts)
-
-
-
+[Redirect](#redirect)  
+[Pipes](#pipes)  
+[For loops](#for-loops)  
+[Scripts](#scripts)  
+[Permissions](#permissions)  
+[Extras](#extras)  
+[Further reading](#further-reading)  
 
 ### Navigation
 
@@ -224,8 +224,46 @@ To run a script, type the relative path of the file. The path is needed, otherwi
 
 For editing scripts in the shell, the text editor [nano](www.nano-editor.org) is recommended.
 
-* 
+### Permissions
 
+There are two main user roles on a Unix system:  
+1) Normal users  
+2) Superuser (a.k.a. "root")  
+This separation is a security feature. Superuser priveleges are required to install software and manage important parts of the filesystem.  
+  
+You could log in as the superuser, but that's terrible practice because then there are no safety checks for anything.
 
+Instead, temporarily invoke superuser status with `sudo`.  
 
+#### Changing Permissions
+Use `chmod`.
 
+**Example 1: rwxrwxrwx**
+
+* Octal notation: `chmod -R 777 myfolder`
+* Symbolic notation: `chmod -R a=rwx myfolder`  
+  
+**Example 2: rwxr-xr-x**
+
+* Octal notation: `chmod -R 755 myfolder`
+* Symbolic notation: `chmod -R u=rwx,g=rx,o=rx myfolder`  
+
+Symbolic notation arguments:
+
+* Users: `u` (user/owner), `g` (group), `o` (others), `a` (all)
+* Permissions: `r` (read), `w` (write), `x` (execute)
+* Changes: `+` (add permissions), `-` (remove permissions), `=` (set permissions)
+
+Reassign ownership of a file/folder with `chown -R username myfolder`.
+
+### Extras
+
+* Use the [htop](https://hisham.hm/htop/) program for memory management
+* Use [cron jobs](https://www.tecmint.com/create-and-manage-cron-jobs-on-linux/) for automating tasks
+
+### Further reading
+
+* [The Unix Shell](http://swcarpentry.github.io/shell-novice/) (Software Carpentery)
+* [The Unix Workbench](https://seankross.com/the-unix-workbench/) (Sean Kross)
+* [Data Science at the Command Line](https://www.datascienceatthecommandline.com/) (Jeroen Janssens)
+* [Using AWK and R to parse 25tb](https://livefreeordichotomize.com/2019/06/04/using_awk_and_r_to_parse_25tb/) (Nick Strayer)
