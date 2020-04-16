@@ -1,5 +1,9 @@
 # Using Git
 
+[Typical process](#typical-process)  
+[Tracking changes](#tracking-changes)  
+[Staging files](#staging-files)  
+
 ### Typical process
 
 1. Create a repo on GitHub and initialize with a README.
