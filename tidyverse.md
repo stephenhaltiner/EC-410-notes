@@ -1,11 +1,23 @@
 # Tidyverse
 
-[Table of contents]
+[What is tidy data?](#what-is-tidy-data?)  
+[Tidyverse basics](#tidyverse-basics)  
 
+* [Tidyverse vs. base R](#tidyverse-vs.-base-r)
+* [Tidyverse packages](#tidyverse-packages)
+* [An aside on pipes](#an-aside-on-pipes)
 
-## Prologue
+[Data wrangling with dplyr](#data-wrangling-with-dplyr)
 
-### What is tidy data?
+* 
+
+[Data tidying with tidyr](#data-tidying-with-tidyr)
+
+* 
+
+[Summary](#summary)
+
+## What is tidy data?
 
 * Each variable forms a column.
 * Each observation forms a row.
@@ -31,10 +43,24 @@ There is often a direct correspondence between a tidyverse command and its base 
 
 ### Tidyverse packages
 
+The tidyverse actually comes with a lot more packages than those that are loaded automatically, e.g. **lubridate**.
+
+The two workhorse packages for cleaning and wrangling data are **dplyr** and **tidyr**.
+
+### An aside on pipes
+
+In R, the pipe operator is `%>%` and is automatically loaded with the tidyverse.
+
+Why use pipes?  
+These next two lines of code do exactly the same thing.  
+`mpg %>% filter(manufacturer=="audi") %>% group_by(model) %>% summarise(hwy_mean = mean(hwy))`  
+`summarise(group_by(filter(mpg, manufacturer=="audi"), model), hwy_mean = mean(hwy))`
+
+The first one is much easier to understand.
 
 
 ## Data wrangling with dplyr
 
-## Data tidying with dplyr
+## Data tidying with tidyr
 
 ## Summary
