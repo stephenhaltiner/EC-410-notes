@@ -24,7 +24,7 @@
     + Namespace conflicts
   * [Indexing](#indexing)
     + Option 1: [ ]
-    + Option 2: $]
+    + Option 2: $
   * [Cleaning up](#cleaning-up)
     + Removing objects (and packages)
     + Removing plots
