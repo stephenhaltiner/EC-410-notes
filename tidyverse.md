@@ -1,23 +1,62 @@
 # Tidyverse
 
-[What is tidy data?](#what-is-tidy-data?)  
-[Tidyverse basics](#tidyverse-basics)  
+[Key verbs](#key-verbs)  
 
-* [Tidyverse vs. base R](#tidyverse-vs.-base-r)
+**Tidyverse basics**
+
+* [What is tidy data?](#what-is-tidy-data)
+* [Tidyverse vs base R](#tidyverse-vs-base-r)
 * [Tidyverse packages](#tidyverse-packages)
-* [An aside on pipes](#an-aside-on-pipes)
+* [Pipes](#pipes)
 
-[Data wrangling with dplyr](#data-wrangling-with-dplyr)
+**dplyr (for data wrangling)**
 
-* 
+* [dplyr::filter](#dplyrfilter)
+* [dplyr::arrange](#dplyrarrange)
+* [dplyr::select](#dplyrselect)
+* [dplyr::mutate](#dplyrmutate)
+* [dplyr::summarize](#dplyrsummarize)
+* [Other dplyr goodies](#other-dplyr-goodies)
+* [Joining operations](#joining-operations)
 
-[Data tidying with tidyr](#data-tidying-with-tidyr)
+**tidyr (for data cleaning)**
 
-* 
+* [tidyr::pivot_longer](#tidyrpivot-longer)
+* [tidyr::pivot_wider](#tidyrpivot-wider)
+* [tidyr::separate](#tidyrseparate)
+* [tidyr::unite](#tidyrunite)
+* [tidyr::crossing](#tidyrcrossing)
+* [tidyr::expand and tidyr::complete](#tidyrexpand-and-tidyrcomplete)
 
-[Summary](#summary)
 
-## What is tidy data?
+## Key verbs
+
+**dplyr**
+
+1. `filter`: Filter (i.e. subset) rows based on their values.
+2. `arrange`: Arrange (i.e. reorder) rows based on their values.
+3. `select`: Select (i.e. subset) columns by their names.
+4. `mutate`: Create new columns.
+5. `summarize`: Collapse multiple rows into a single summary value. Often used with `group_by`.
+
+**tidyr**
+
+* `pivot_longer`: Pivot wide data into long format (i.e. "melt").
+  + Updated verstion of `tidyr::gather`.
+* `pivot_wider`: Pivot long data into wide format (i.e. "cast").
+  + Updated version of `tidyr::spread`.
+* `separate`: Separate (i.e. split) one column into multiple columns.
+* `unite`: Unite (i.e. combine) multiple columns into one.
+
+**Also useful:**
+
+* `%>%` (pipes)
+* `group_by`
+* `left_join` and other join functions
+
+## Tidyverse basics
+
+### What is tidy data?
 
 * Each variable forms a column.
 * Each observation forms a row.
@@ -25,9 +64,7 @@
 
 Basically, tidy data is more likely to be [long/"narrow" format](https://en.wikipedia.org/wiki/Wide_and_narrow_data) than wide format.
 
-## Tidyverse basics
-
-### Tidyverse vs. base R
+### Tidyverse vs base R
 
 Tidyverse is great because:
 
@@ -47,7 +84,7 @@ The tidyverse actually comes with a lot more packages than those that are loaded
 
 The two workhorse packages for cleaning and wrangling data are **dplyr** and **tidyr**.
 
-### An aside on pipes
+### Pipes
 
 In R, the pipe operator is `%>%` and is automatically loaded with the tidyverse.
 
@@ -60,15 +97,6 @@ The first one is much easier to understand.
 
 
 ## Data wrangling with dplyr
-
-### Key dplyr verbs
-
-1. `filter`: Filter (i.e. subset) rows based on their values.
-2. `arrange`: Arrange (i.e. reorder) rows based on their values.
-3. `select`: Select (i.e. subset) columns by their names.
-4. `mutate`: Create new columns.
-5. `summarize`: Collapse multiple rows into a single summary value.
-
 
 ### dplyr::filter
 
@@ -206,17 +234,175 @@ dplyr can do all kinds of join operations:
 * `semi_join(df1, df2)`
 * `anti_join(df1, df2)`
 
+You can also pipe a data frame to a join operation:  
+`df1 %>% left_join(df2)`
+
 Guide on join types [here](https://r4ds.had.co.nz/relational-data.html#understanding-joins).
 
+`left_join(flights, planes)`  
+Note dplyr makes a guess about which columns to match.
 
+Specify which columns to match with `by`:  
+`left_join(flights, planes, by = "tailnum")`
 
-
-
-
-
-
+You may want to rename ambiguous columns beforehand to avoid confusion:  
+`planes %>% rename(year_built = year)`
 
 
 ## Data tidying with tidyr
 
-## Summary
+### tidyr::pivot_longer
+Example data frame:
+```
+stocks <- data.frame(
+  time = as.Date('2009-01-01') + 0:1,
+  X = rnorm(2, 0, 1),
+  Y = rnorm(2, 0, 2),
+  Z = rnorm(2, 0, 4)
+  )
+
+stocks
+        time         X         Y         Z
+1 2009-01-01  1.691159 -2.217228 12.697924
+2 2009-01-02 -0.712833 -1.409637  2.661915
+```
+
+`tidy_stocks <- stocks %>% pivot_longer(-time, names_to="stock", values_to="price")`
+```
+tidy_stocks
+  time       stock  price
+  <date>     <chr>  <dbl>
+1 2009-01-01 X      1.69 
+2 2009-01-01 Y     -2.22 
+3 2009-01-01 Z     12.7  
+4 2009-01-02 X     -0.713
+5 2009-01-02 Y     -1.41 
+6 2009-01-02 Z      2.66 
+```
+
+### tidyr::pivot_wider
+`tidy_stocks %>% pivot_wider(names_from=stock, values_from=price)`
+```
+  time            X     Y     Z
+  <date>      <dbl> <dbl> <dbl>
+1 2009-01-01  1.69  -2.22 12.7 
+2 2009-01-02 -0.713 -1.41  2.66
+```
+
+`tidy_stocks %>% pivot_wider(names_from=time, values_from=price)`
+```
+  stock `2009-01-01` `2009-01-02`
+  <chr>        <dbl>        <dbl>
+1 X             1.69       -0.713
+2 Y            -2.22       -1.41 
+3 Z            12.7         2.66 
+```
+
+* Note that this second example has effectively transposed the data.
+
+#### Remembering pivot syntax
+
+The argument order is *"names"* and then *"values"*.
+
+### tidyr::separate
+
+Divide cells horizontally:
+```
+economists <- data.frame(name = c("Adam.Smith", "Paul.Samuelson", "Milton.Friedman"))
+
+economists
+##              name
+## 1      Adam.Smith
+## 2  Paul.Samuelson
+## 3 Milton.Friedman
+```
+
+`economists %>% separate(name, c("first_name", "last_name"))`
+```
+##   first_name last_name
+## 1       Adam     Smith
+## 2       Paul Samuelson
+## 3     Milton  Friedman
+```
+The command can guess the separation character, or you can specify it with `separate(..., sep=".")`.
+
+
+Divide cells **vertically**:
+`separate_rows` splits up cells that contain multiple fields or observations (which is common in survey data):
+```
+jobs <- data.frame(
+  name = c("Jack", "Jill"),
+  occupation = c("Homemaker", "Philosopher, Philanthropist, Troublemaker") 
+  ) 
+jobs
+
+##   name                                occupation
+## 1 Jack                                 Homemaker
+## 2 Jill Philosopher, Philanthropist, Troublemaker
+```
+`jobs %>% separate_rows(occupation)`
+```
+##   name     occupation
+## 1 Jack      Homemaker
+## 2 Jill    Philosopher
+## 3 Jill Philanthropist
+## 4 Jill   Troublemaker
+```
+
+### tidyr::unite
+```
+gdp <- data.frame(
+  yr = rep(2016, times = 4),
+  mnth = rep(1, times = 4),
+  dy = 1:4,
+  gdp = rnorm(4, mean = 100, sd = 2)
+  )
+gdp
+
+##     yr mnth dy       gdp
+## 1 2016    1  1 100.97242
+## 2 2016    1  2  99.80214
+## 3 2016    1  3  99.76375
+## 4 2016    1  4 100.68899
+```
+Combine "yr", "mnth", and "dy" into one "date" column:
+`gdp_u <- gdp %>% unite(date, c("yr", "mnth", "dy"), sep = "-") %>% as_tibble()`
+```
+## # A tibble: 4 x 2
+##   date       gdp
+##   <chr>    <dbl>
+## 1 2016-1-1 101. 
+## 2 2016-1-2  99.8
+## 3 2016-1-3  99.8
+## 4 2016-1-4 101.
+```
+Note: `unite` automatically creates a character variable. We can fix this with `dplyr::mutate` and `lubridate::ymd`:
+```
+library(lubridate)
+gdp_u %>% mutate(date = ymd(date))
+
+## # A tibble: 4 x 2
+##   date         gdp
+##   <date>     <dbl>
+## 1 2016-01-01 101. 
+## 2 2016-01-02  99.8
+## 3 2016-01-03  99.8
+## 4 2016-01-04 101.
+```
+
+### tidyr::crossing
+
+Gives you the full combination of a group of variables:  
+`crossing(side=c("left", "right"), height=c("top", "bottom"))`
+```
+  side  height
+  <chr> <chr> 
+1 left  bottom
+2 left  top   
+3 right bottom
+4 right top 
+```
+
+### tidyr::expand and tidyr::complete
+`expand` and `complete` allow you to fill in (implicit) missing data or variable combinations in existing data frames.
+
