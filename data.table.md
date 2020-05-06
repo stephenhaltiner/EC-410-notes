@@ -1,12 +1,49 @@
 # data.table
 
-## Why use data.table?
+data.table is a powerful data wrangling package. It has concise syntax and incredible speed. It is also lightweight.
 
-1. Concise
-2. Insanely fast
-3. Memory efficient
-4. Feature rich (and stable)
-5. Dependency-free
+**Basic syntax:** `DT[i, j, by]`
+
+* `i` On which rows?
+* `j` Do what?
+* `by` Grouped by what?
+
+data.table (re)introduces some new ideas like *modify by reference* (`:=`) and syntax (`.()`, `.SD`, `.SDcols`, etc).
+
+* This helps maximize performance while maintaining concise, consistent syntax.
+
+**Use keys** to order your data for a major speed boost.
+
+**Contents:**
+
+* [data.table basics](#data.table-basics)
+  + [The data.table object](#the-data.table-object)
+  + [Modify by reference](#modify-by-reference)
+  + [Syntax](#syntax)
+  
+* [Working with rows: DT[i, ]](#working-with-rows-DT-i)
+  + [Order by rows (arrange)](#order-by-rows-arrange)
+  
+* [Manipulating columns: DT[, j]](#manipulating-columns--dt---j-)
+  + [Modifying columns](#modifying-columns)
+    - [Aside: chaining data.table operations](#aside-chaining-data.table-operations)
+    
+  + [Subsetting on columns](#subsetting-on-columns)
+  + [Aggregating](#aggregating)
+  
+* [Grouping: DT[,,by]](#grouping-dt-by)
+  + [Efficient subsetting with .SD](#efficient-subsetting-with-.sd)
+  + [keyby](#keyby)
+  
+* [Keys](#keys)
+  + [Setting a key](#setting-a-key)
+  
+* [Merging datasets (joins)](#merging-datasets-joins)
+* [Reshaping data](#reshaping-data)
+  + [Wide to long](#wide-to-long)
+  + [Long to wide](#long-to-wide)
+  
+* [data.table + tidyverse workflows](#data.table-tidyverse-workflows)
 
 ## data.table basics
 
@@ -16,7 +53,7 @@ The tidyverse provides its own enhanced version of a data.frame in the form of t
 
 * The specialized internal structure of data.table objects is a key reason the package is so fast.
 
-Multiple ways to create a data.table:
+**Create a data.table:**
 
 * `data.table(x = 1:10)` creates a new data.table from scratch
 * `as.data.table(df)` turns an existing data frame (df) into a data.table
@@ -24,7 +61,7 @@ Multiple ways to create a data.table:
 
 Note: CSVs imported via `fread()` are automatically converted to data.table.
 
-### What does "modify by reference" mean?
+### Modify by reference
 
 There are two ways of changing or assigning objects in R:
 
@@ -33,9 +70,9 @@ There are two ways of changing or assigning objects in R:
 
 When we say data.table "modifies by reference", that means it modifies objects in place. Less memory and faster computation!
 
-### data.table syntax
+### Syntax
 
-#### DT[i,j,by]
+**DT[i,j,by]**
 
 * `i`: On which rows?
 * `j`: What do do?
@@ -78,8 +115,6 @@ But you could still do it this way:
 
 
 ## Manipulating columns: DT[, j]
-
-### j
 
 Recall some dplyr verbs we used to manipulate our variables:
 
@@ -218,14 +253,169 @@ E.g. count the number of observations using `.N`:
 
 ## Grouping: DT[,,by]
 
+data.table's `by` argument works like `dplyr::group_by`.
+
+* `starwars_dt[, mean(height, na.rm=T), by = species]`: Collapse by single variable
+* `starwars_dt[, .(species_height = mean(height, na.rm=T)), by = species]`: Same, but explicitly name the summary variable
+* `starwars_dt[, mean(mass, na.rm=T), by = height>190]`: Conditionals work too.
+* `starwars_dt[, species_n := .N, by = species][]`: Add an aggregated column to the data (here: number of observations by species group)
+
+Summarize multiple variables at once (the tedious way):
+```
+starwars_dt[, 
+            .(mean(height, na.rm=T),
+              mean(mass, na.rm=T),
+              mean(birth_year, na.rm=T)), 
+            by = species]
+```
+
+### Efficient subsetting with .SD
+
+The `.SD` symbol stands for "subsetting data."
+
+```
+starwars_dt[, 
+            lapply(.SD, mean, na.rm=T),   ## Specify what to do on the data subset (.SD), iterate with lapply()
+            by = species, 
+            .SDcols = c("height", "mass", "birth_year")]  ## Specify which columns to subset
+```
+Note, the `.()` syntax doesn't work with `.SDcols`, but `:` does (e.g. `.SDcols = height:mass`).
+
+Omitting `.SDcols` will apply the function to *all* variables in the dataset.
+
+### keyby
+
+The `keyby` argument works like `by` but it also orders the results and creates a **key**.
 
 
 ## Keys
 
-## Merging datasets
+Keys are for ordering the data, allowing for *extremely* fast subsetting.
+
+Imagine we want to filter a dataset based on a particular value (e.g. find all human characters in the starwars dataset.)
+
+* Normally, we'd have to search through the whole dataset to identify matching cases.
+* But if we set an appropriate key, then the data are already ordered in such a way that the computer only has to search through a much smaller subset.
+
+**Analogy:** A filing cabinet has a drawer for "ABC", another for "DEF", etc. To find Fred's file, we only have to search the second drawer, not the whole cabinet.
+
+### Setting a key
+
+You can set a key when you first create a data.table:
+
+* `DT = data.table(x = 1:10, y = LETTERS[1:10], key = "x")`
+* `DT = as.data.table(DF, key = "x")`
+* `setDT(DF, key = "x")`
+
+Or use `setkey()` on an existing data.table:
+
+* `setkey(DT, x)` (Note the key doesn't have to be quoted here.)
+
+Since keys just describe a particular ordering of the data, you can set a key on *multiple* columns:
+
+* `DT = as.data.table(DF, key = c("x", "y"))`
+* `setkey(DT, x, y)`
+
+Use `key()` to see what keys are currently set for a data.table. A table can only have one key at a time.
+
+
+## Merging datasets (joins)
+
+data.table provides two ways to merge datasets:
+
+* `DT1[DT2, on = "id"]`
+* `merge(DT1, DT2, by = "id")`
+
+The second way offers extra functionality (`?merge.data.table`).
+
+Summary of the different join options: see [here](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/#joinbind-data-sets).
+
+**dplyr**
+```
+left_join(
+  flights, 
+  planes, 
+  by = "tailnum"
+  )
+```
+
+**data.table**
+```
+merge(
+  flights_dt, 
+  planes_dt, 
+  all.x = TRUE, ## omit for inner join
+  by = "tailnum")
+```
+
+When there is an ambiguous same-name column in each table, both methods create "column.x" and "column.y" variants. With dplyr, we avoid this by using `rename()`. With data.table, use `setnames()`:
+```
+merge(
+  setnames(flights_dt, old = "year", new = "year_built"),
+  planes_dt, 
+  all.x = TRUE, 
+  by = "tailnum")
+```
+
+**Use keys for super fast joins**
+```
+flights_dt_key = as.data.table(flights, key = "tailnum")
+planes_dt_key = as.data.table(planes, key = "tailnum")
+merge_dt_key = function() merge(flights_dt_key, planes_dt_key, by = "tailnum")
+```
 
 ## Reshaping data
 
+With tidyverse, we can reshape data using the `tidyr::pivot*` functions.
+
+data.table has functions for reshaping data too:
+
+* `dcast()`: convert wide data to long data
+* `melt()`: convert long data to wide data
+
+The **tidyfast** package implements data.table versions of the `tidyr::pivot*` functions:
+
+* `tidyfast::dt_pivot_longer()`: wide to long
+* `tidyfast::dt_pivot_wider()`: long to wide
+
+### Wide to long
+```
+stocks
+##          time          X         Y         Z
+## 1: 2009-01-01  0.3522752  4.068978 7.3494008
+## 2: 2009-01-02 -0.3102111 -1.763021 0.7670371
+```
+Convert to long: two options
+
+* `melt(stocks, id.vars="time", variable.name="stock", value.name="price")`
+* `stocks %>% dt_pivot_longer(X:Z, names_to="stock", values_to="price")`
+
+### Long to wide
+```
+stocks_long
+##          time stock      price
+## 1: 2009-01-01     X  0.3522752
+## 2: 2009-01-02     X -0.3102111
+## 3: 2009-01-01     Y  4.0689778
+## 4: 2009-01-02     Y -1.7630212
+## 5: 2009-01-01     Z  7.3494008
+## 6: 2009-01-02     Z  0.7670371
+```
+
+* `dcast(stocks_long, time ~ stock, value.var="price")`
+* `stocks_long %>% dt_pivot_wider(names_from=stock, values_from=price)`
+
+
 ## data.table + tidyverse workflows
 
-## Summary
+Use which package makes sense for a given situation. Remember you can use tidyverse verbs on data.tables:
+
+* `starwars_dt %>% group_by(homeworld) %>% summarize(height = mean(height, na.rm=T))`
+
+This incurs a performance penalty - luckily there is dtplyr.
+
+**dtplyr** provides a data.table "back-end" for dplyr. Write your code as if using dplyr, and it gets translated as data.table code.
+
+* dtplyr is 36x faster than dplyr, and 0.5x as fast as data.table.
+* dtplyr automatically prints its data.table translation to screen.
+
