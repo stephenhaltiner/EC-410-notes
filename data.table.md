@@ -44,6 +44,7 @@ data.table (re)introduces some new ideas like *modify by reference* (`:=`) and s
   + [Long to wide](#long-to-wide)
   
 * [data.table + tidyverse workflows](#data.table-tidyverse-workflows)
+* [Resources](#resources)
 
 ## data.table basics
 
@@ -419,3 +420,13 @@ This incurs a performance penalty - luckily there is dtplyr.
 * dtplyr is 36x faster than dplyr, and 0.5x as fast as data.table.
 * dtplyr automatically prints its data.table translation to screen.
 
+## Resources
+
+* [data.table official website](http://r-datatable.com)
+* [Cheatsheet](https://github.com/Rdatatable/data.table#cheatsheets)
+* [side-by-side comparisons of common data.table and dplyr operations](https://atrebas.github.io/post/2019-03-03-datatable-dplyr)
+
+Related packages:
+
+* [tidyfast](https://tysonbarrett.com/tidyfast)
+* [dtplyr](https://dtplyr.tidyverse.org)
