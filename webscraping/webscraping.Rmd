@@ -1,6 +1,6 @@
 ---
 title: "webscraping-CSS"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,8 +10,6 @@ library(tidyverse)
 library(rvest)
 library(lubridate)
 ```
-
-# Webscraping (CSS)
 
 ## Summary
 
