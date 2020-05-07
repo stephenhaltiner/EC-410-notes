@@ -1,0 +1,154 @@
+---
+title: "webscraping-CSS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(janitor)
+library(tidyverse)
+library(rvest)
+library(lubridate)
+```
+
+# Webscraping (CSS)
+
+## Summary
+
+* Web content is rendered either 1) server-side or 2) client-side.
+* To scrape content rendered **server-side**, we must know the relevant **CSS selectors**.
+* Find the CSS selectors with a browser extension or by using "inspect element".
+* Use the `rvest` package to read the HTML doc into R and parse the relevant nodes.
+  + A typical workflow: `read_html(URL) %>% html_nodes(CSS_SELECTORS) %>% html_table(fill=TRUE)`.
+  + You may need other functions depending on content type (e.g. `html_text()`)
+
+* Web scraping requires lots of experimenting and cleaning.
+
+## rvest (for server-side)
+
+rvest is designed to work with web pages that are built server-side and thus requires knowledge of the relevant CSS selectors.
+
+CSS has two main features:
+
+* *Properties:* the "how" of display rules (e.g. fonts, styles, colors, page width)
+* *Selectors:* the "what" of display rules (identify which properties should be applied to which elements; e.g. top-line text headers are labeled ".h1"; subheaderes are ".h2")
+
+```{r}
+# library(rvest)
+m100 <- read_html("https://en.wikipedia.org/wiki/Men%27s_100_metres_world_record_progression")
+m100
+```
+
+This creates an XML document containing the whole webpage.
+
+Let's try to isolate a table on this page using SelectorGadget/ScrapeMate browser extension:
+```{r, error=TRUE}
+m100 %>%
+html_nodes("div+ .wikitable td , div+ .wikitable th") %>%
+html_table(fill=TRUE)
+```
+Didn't work. Sometimes you have to use Inspect Element instead to get the right CSS selector. Let's try this one:
+
+```{r}
+pre_iaaf <-
+  m100 %>%
+  html_nodes("table.wikitable:nth-child(8)") %>%
+  html_table(fill=TRUE)
+  
+class(pre_iaaf)  ## Check class of the output
+```
+The output from this is actually a list of lists... so let's convert it to a data frame with `dplyr::bind_rows()`.
+```{r}
+# pre_iaaf <- pre_iaaf[[1]] ## Would also work
+
+# library(dplyr)
+pre_iaaf <-
+  pre_iaaf %>%
+  bind_rows() %>%
+  as_tibble()
+
+# library(janitor)
+pre_iaaf <- clean_names(pre_iaaf) ## Clean column names
+pre_iaaf
+```
+
+As seen above, there is an issue: Westergen's second entry is recorded incorrectly - where his name should be, his time is there instead. Let's write a simple fix:
+```{r, error=TRUE}
+## See if possible to convert the 'athlete' column to numeric. If possible, replace the cell with the preceding value.
+
+pre_iaaf <-
+  pre_iaaf %>%
+  mutate(athlete = ifelse(is.na(as.numeric(athlete)), athlete, lag(athlete)))
+```
+
+Finally, convert date column from chr format to date format:
+```{r}
+# library(lubridate)
+pre_iaaf <-
+  pre_iaaf %>%
+  mutate(date = mdy(date))
+pre_iaaf
+```
+
+## Exercise
+
+Scrape all the tables, combine, and make a plot.
+
+```{r}
+## Get next table
+iaaf_1 <-
+  m100 %>%
+  html_nodes("table.wikitable:nth-child(14)") %>%
+  html_table(fill=TRUE) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  clean_names()
+  
+## Fix blank athlete, clean dates
+iaaf_1 <- 
+  iaaf_1 %>%
+  mutate(athlete = if_else(athlete=="", lag(athlete), athlete)) %>%
+  mutate(date = mdy(date))
+
+## Fix blank dates
+iaaf_1 <- 
+  iaaf_1 %>%
+  mutate(date = if_else(is.na(date), lag(date), date))
+```
+
+```{r}
+## Get final table
+iaaf_2 <- 
+  m100 %>%
+  html_nodes("table.wikitable:nth-child(19)") %>%
+  html_table(fill = TRUE) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  clean_names()
+  
+## Clean dates
+iaaf_2 <- 
+  iaaf_2 %>%
+  mutate(date = mdy(date))
+
+## Don't bother fixing the other issues, at least we can graph times against date.
+```
+
+```{r}
+## Combine data frames
+wr100 <- 
+  bind_rows(
+    pre_iaaf %>% select(time, date) %>% mutate(era = "Pre-IAAF"),
+    iaaf_1 %>% select(time, date) %>% mutate(era = "Pre-automatic"),
+    iaaf_2 %>% select(time, date) %>% mutate(era = "Modern")
+  )
+
+## Plot
+wr100 %>%
+  ggplot() +
+  geom_point(mapping = aes(x = date, y = time, color = era)) +
+  labs(title = "Men's 100 meters world record progression")
+```
+
+
+
