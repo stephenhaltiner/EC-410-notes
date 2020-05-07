@@ -16,6 +16,12 @@ webscraping-CSS
         `html_text()`)
   - Web scraping requires lots of experimenting and cleaning.
 
+## Resources
+
+The [polite](https://github.com/dmi3kno/polite) package provides tools
+to help maintain web etiquette while scraping (checking for permission,
+not hammering the host website with requests, etc).
+
 ## rvest (for server-side)
 
 rvest is designed to work with web pages that are built server-side and
