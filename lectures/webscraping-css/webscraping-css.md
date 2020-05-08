@@ -1,8 +1,6 @@
 webscraping-CSS
 ================
 
-## Summary
-
   - Web content is rendered either 1) server-side or 2) client-side.
   - To scrape content rendered **server-side**, we must know the
     relevant **CSS selectors**.
@@ -16,7 +14,13 @@ webscraping-CSS
         `html_text()`)
   - Web scraping requires lots of experimenting and cleaning.
 
-## Resources
+**Contents:**
+
+  - [Be polite](#be-polite)
+  - [rvest (for server-side)](#rvest-\(for-server-side\))
+  - [Exercise](#exercise)
+
+## Be polite
 
 The [polite](https://github.com/dmi3kno/polite) package provides tools
 to help maintain web etiquette while scraping (checking for permission,
@@ -212,4 +216,4 @@ wr100 %>%
   labs(title = "Men's 100 meters world record progression")
 ```
 
-![](webscraping_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](webscraping-css_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
