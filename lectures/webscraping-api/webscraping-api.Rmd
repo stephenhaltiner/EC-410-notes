@@ -16,6 +16,27 @@ pacman::p_install_gh("sboysel/fredr") ## https://github.com/sboysel/fredr/issues
 theme_set(hrbrthemes::theme_ipsum())
 ```
 
+* An API is a set of rules/methods that allow one computer or program (e.g. host server) to communicate with another (e.g. client or browser).
+* We can access information through an API directly by specifying a valid API endpoint.
+* Some APIs don't require an access key or token, but most do. You can add the key as a parameter in the API endpoint.
+* To download from an API endpoint, use:
+  + `jsonlite::readJSON()` to read a JSON array
+  + `httr::GET()` to read the whole API response
+  + or use a package that does the work for you, like `fredr`
+
+**Contents:**
+
+* [Client-side, APIs, and API endpoints](#client-side,-apis,-and-api-endpoints)
+* [APIs](#apis)
+* [Application 1: Trees of New York City](#application-1:-trees-of-new-york-city)
+* [Application 2: FRED data](#application-2:-fred-data)
+* [Safely store and use API keys as environment variables](#safely-store-and-use-api-keys-as-environment-variables)
+* [Application 3: World rugby rankings](#application-3:-world-rugby-rankings)
+    + [Locating a hidden API endpoint](#locating-a-hidden-api-endpoint)
+    
+* [Extra resources and exercises](#extra-resources-and-exercises)
+
+
 ## Client-side, APIs, and API endpoints
 
 Recall that websites or applications that are built using a client-side framework typically involve something like the following steps:
@@ -121,7 +142,8 @@ To extract the content/data from this response, use `httr::content()`. Since the
 fred %>%
   httr::content("text") %>%  ## Extract the content/data from the API response
   jsonlite::fromJSON() %>%  ## Convert it to an R object
-  listviewer::jsonedit("view")  ## Open an interactive inspector
+# listviewer::jsonedit("view")  ## Open an interactive inspector
+  str()  ## Inspect structure
 ```
 
 Looks like the `fred$observations` sub-element is what we want.
@@ -221,10 +243,54 @@ Using CSS to scaape the [World Rugby rankings](https://www.world.rugby/rankings/
 * Go to the Network tab.
 * Filter by XHR (XML data).
 * Refresh the page.
-* Search through the traffic links to find which one contains the data you want.
+* Search through the traffic links to find which one contains the data you want. (Check the "response" or "output" to preview the data inside.)
+* Copy the URL and preview it in a new tab.
+
+Walkthrough [here](aster/08-web-api/08-web-api.html#locating_the_hidden_api_endpoint).
+
+We'll use the `jsonlite` package to pull this into R.
+
+```{r}
+endpoint <- "https://cmsapi.pulselive.com/rugby/rankings/mru?language=en&client=pulse"
+
+rugby <- fromJSON(endpoint)
+str(rugby)  ## Inspect structure of object
+```
+
+It's a nested list, and it looks like $entries is what we want. Investigate further:
+```{r}
+str(rugby$entries)  ## Base option
+# listviewer::jsonedit(rugby, mode = "view") ## Interactive option
+```
+
+```{r}
+head(rugby$entries$team)
+```
+
+It looks like we could bind (append) the columns of `rugby$entries$team` to the other elements of `rugby$entries`. Then all the data would be in a single table.
+
+```{r}
+# library(janitor)
+rankings <- 
+  bind_cols(rugby$entries$team,
+            rugby$entries %>% select(-team)
+            ) %>%
+  clean_names() %>%
+  select(-c(id, alt_id, annotations)) %>%  ## These columns aren't needed
+  select(pos, pts, everything()) %>%  ## Reorder columns
+  as_tibble()
+rankings
+```
+
+For a tutorial on scraping the records from different points in time, then wrangling and plotting, see [here](https://raw.githack.com/uo-ec510-2020-spring/lectures/master/08-web-api/08-web-api.html#bonus:_get_and_plot_the_rankings_history).
 
 
+## Extra resources and exercises
 
-
+* [Here](https://www.pscp.tv/w/1ynKOpVnERrGR) is a short video stream by Grant for scraping traffic fatality data from [LA’s Open Data portal](https://data.lacity.org/). Expands a bit on using API parameters to query (i.e. wrangle and summarise) data directly up on the host server before scraping it.
+* Several cool [blog posts](https://tclavelle.github.io/blog/) on interacting with APIs through R. I especially recommend going over --- and replicating --- the excellent [tutorial on the GitHub API](https://tclavelle.github.io/blog/r_and_apis/). 
+* A post on RStudio's *R Views* blog, "[GDP Data via API](https://rviews.rstudio.com/2018/09/12/gdp-via-api/)" treads a similar path to the FRED example. Except he uses the Bureau of Economic Analysis (BEA) API.
+* "[Web Scraping 201: finding the API](http://www.gregreda.com/2015/02/15/web-scraping-finding-the-api/)" covers much of the same ground as we have here. While it focuses on Python tools, I've found it to be a handy reference. (Earlier posts in Greg's webscraping series --- [Part 1](http://www.gregreda.com/2013/03/03/web-scraping-101-with-python/) and [Part 2](http://www.gregreda.com/2013/04/29/more-web-scraping-with-python/) --- to see some Python equivalents of the `rvest` tools that we've been using.) 
+* Using Python for "[Discovering hidden APIs](https://ianlondon.github.io/blog/web-scraping-discovering-hidden-apis/)" from Airbnb.
 
 
