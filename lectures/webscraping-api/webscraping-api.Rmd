@@ -1,0 +1,230 @@
+---
+title: "Web scraping (APIs)"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## Load and install the packages that we'll be using today
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, httr, lubridate, hrbrthemes, janitor, jsonlite, listviewer, usethis)
+
+pacman::p_install_gh("sboysel/fredr") ## https://github.com/sboysel/fredr/issues/75
+
+## My preferred ggplot2 plotting theme (optional)
+theme_set(hrbrthemes::theme_ipsum())
+```
+
+## Client-side, APIs, and API endpoints
+
+Recall that websites or applications that are built using a client-side framework typically involve something like the following steps:
+
+* You visit a URL that contains a template of static content (HTML tables, CSS, etc.). This template itself doesn’t contain any data.
+* However, in the process of opening the URL, your browser sends a request to the host server.
+* If your request if valid, then the server issues a response that fetches the necessary data for you and renders the page dynamically in your browser.
+* The page that you actually see in your browser is thus a mix of static content and dynamic information that is rendered by your browser (i.e. the “client”).
+
+All of this requesting, responding and rendering takes places through the host application’s API (or Application Programming Interface).
+
+## APIs
+
+For a thorough introduction: [An Introduction to APIs](https://zapier.com/learn/apis/)
+
+* **Server:** A powerful computer that runs an API.
+* **Client:** A program that exchanges data with a server through an API.
+* **Protocol:** The “etiquette” underlying how computers talk to each other (e.g. HTTP).
+* **Methods:** The “verbs” that clients use to talk with a server. The main one that we’ll be using is GET (i.e. ask a server to retrieve information), but other common methods are POST, PUT and DELETE.
+* **Requests:** What the client asks of the server (see Methods above).
+* **Response:** The server’s response. This includes a Status Code (e.g. “404” if not found, or “200” if successful), a *Header* (i.e. meta-information about the reponse), and a *Body* (i.e the actual content that we’re interested in).
+
+We can access information *directly* from the API database if we can specify the correct URL(s). These URLs are called **API endpoints**. They are usually **JSON** (JavaScript Object Notation) or **XML** (Extensible Markup Language).
+
+## Application 1: Trees of New York City
+
+[NYC Open Data](https://opendata.cityofnewyork.us/) is a cool and very extensive data source. It compiles all the data from all local government agencies.
+
+We'll use the [2015 Street Tree Census](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh).
+
+```{r}
+# library(jsonlite)
+nyc_trees <- 
+  fromJSON("https://data.cityofnewyork.us/resource/uvpi-gqnh.json") %>%
+  as_tibble()
+nyc_trees
+```
+
+Note: the online dataset is 700k rows, but the API defaults to a limit of 1,000 rows. 
+
+Change the limit with `$limit`, for example to 5 rows:
+
+* `fromJSON("https://data.cityofnewyork.us/resource/uvpi-gqnh.json?$limit=5)`
+
+Note `jsonlite::fromJSON()` coerces all values to character format, in order to be safe. So we need to fix our column types.
+
+```{r}
+nyc_trees %>%
+  select(longitude, latitude, stump_diam, boroname, spc_common, tree_id) %>%
+  mutate(longitude = as.numeric(longitude),
+         latitude = as.numeric(latitude),
+         stump_diam = as.numeric(stump_diam)) %>%
+  ggplot(aes(x=longitude,
+             y=latitude,
+             size=stump_diam,
+             color=boroname)) +
+  geom_point(alpha=0.5) +
+  scale_size_continuous(name="Stump diameter") +
+  labs(x = "Longitude", y = "Latitude",
+       color = "Borough",
+       title = "Sample of NYC trees",
+       caption = "Source: NYC Open Data")
+```
+
+## Application 2: FRED data
+
+We can access FRED data via the FRED API. You need to [register an API KEY](https://research.stlouisfed.org/useraccount/apikey) on their site first. You can read the [FRED API development docs](https://research.stlouisfed.org/docs/api/fred/) to learn how to access their data. We are interested in collecting **series/observations**. For this, the docs specify some parameters of interest:
+
+* **file_type**: “json” (Not required, but our preferred type of output.)
+* **series_id**: “GNPCA” (Required. The data series that we want.)
+* **api_key**: “YOUR_API_KEY” (Required.)
+
+Combine these parameters with the endpoint path. Then we can go to the resulting URL in our browser:
+
+* https://api.stlouisfed.org/fred/series/observations?series_id=GNPCA&api_key=YOUR_API_KEY&file_type=json
+
+We could use `jsonlite::readJSON()` to read the JSON object into R, but the **httr** package has some features that allow us to interact more flexibly and securely with web APIs.
+
+Start by creating "convenience variables":
+```{r}
+endpoint = "series/observations"
+params = list(
+  api_key= Sys.getenv("FRED_API_KEY"), ## See below for how to set your keys
+  file_type="json", 
+  series_id="GNPCA"
+  )
+```
+
+Use `httr::GET()` to request (download) the data.
+```{r}
+fred <- 
+  httr::GET(
+    url = "https://api.stlouisfed.org/", ## Base URL
+    path = paste0("fred/", endpoint), ## The API endpoint
+    query = params ## The parameter list defined above
+  )
+fred
+```
+
+To extract the content/data from this response, use `httr::content()`. Since the content is a JSON array, we can convert it to an R object with `jsonlite::fromJSON()`. Then, since the result is a list, we can try the `listviewer::jsonedit()` for interactive inspection.
+
+```{r}
+fred %>%
+  httr::content("text") %>%  ## Extract the content/data from the API response
+  jsonlite::fromJSON() %>%  ## Convert it to an R object
+  listviewer::jsonedit("view")  ## Open an interactive inspector
+```
+
+Looks like the `fred$observations` sub-element is what we want.
+
+```{r}
+fred <- 
+  fred %>%
+  httr::content("text") %>%  ## Extract the content/data from the API response
+  jsonlite::fromJSON() %>%  ## Convert it to an R object
+  purrr::pluck("observations") %>%  ## Extract the "$observations" list element
+  # .$observations %>%  ## Would also work
+  # magrittr:extract("observations") %>%  ## Would also work
+  as_tibble()
+fred
+```
+
+Clean:
+
+```{r}
+fred <- 
+  fred %>%
+  select(date, value) %>%
+  mutate(date = ymd(date),
+         value = as.numeric(value))
+```
+
+Plot:
+
+```{r}
+fred %>%
+  ggplot(aes(x = date,
+             y = value)) +
+  geom_line() +
+  labs(x = NULL,
+       y = "2012 USD (billions)",
+       title = "US Real Gross National Product",
+       caption = "Source: FRED")
+```
+
+## Safely store and use API keys as environment variables
+
+#### 1) Set an environment variable for the current R session only
+
+```{r}
+## Set new environment variable called MY_API_KEY. Current session only.
+Sys.setenv(MY_API_KEY="abcdefghijklmnopqrstuvwxyz0123456789")
+
+## Print the key, after it's defined:
+Sys.getenv("MY_API_KEY")
+```
+This is nice because the object won't be shown in the RStudio environment pane (it's safe).
+
+Don't write `Sys.setenv()` calls in an R Markdown file or other shared documents - that would defeat the purpose of keeping the keys secure. Use the console instead.
+
+#### 2) Set an environment variable that persists across R sessions
+
+To set an R environment variable that's available across sessions, you add it to a file called `~/.Renviron`. This is a text file in your home directory which R reads on startup. You can do this conveniently with `usethis::edit_r_environ()`.
+
+```{r, results='hide'}
+## Open your .Renviron file so you can add API keys that persist across sessions
+usethis::edit_r_environ()
+```
+
+Insert a line like this:
+```
+MY_API_KEY="abcdefghijklmnopqrstuvwxyz0123456789"
+```
+After saving, read the file to make the variable available in your current session:
+```{r}
+## Refresh your .Renviron file
+readRenviron("~/.Renviron")
+```
+
+#### Use a package
+
+With R, someone has probably already written a package that does the heavy API lifting for you. For FRED, there is [fredr](http://sboysel.github.io/fredr/index.html).
+
+```{r}
+library(fredr)
+fredr(series_id = "UNRATE") %>%
+  ggplot(aes(x = date,
+             y = value)) +
+  geom_line() +
+  labs(x = NULL,
+       y = "Percent Unemployed",
+       title = "US Unemployment Rate",
+       caption = "Source: FRED")
+```
+
+## Application 3: World rugby rankings
+
+Using CSS to scaape the [World Rugby rankings](https://www.world.rugby/rankings/mru) isn't working. The site is rendered client-side, so there must be an API. Let's find it.
+
+#### Locating a hidden API endpoint
+
+* Inspect the page.
+* Go to the Network tab.
+* Filter by XHR (XML data).
+* Refresh the page.
+* Search through the traffic links to find which one contains the data you want.
+
+
+
+
+
+
