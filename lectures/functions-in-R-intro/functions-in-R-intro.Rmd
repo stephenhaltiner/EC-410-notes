@@ -1,0 +1,74 @@
+---
+title: 'Functions in R: Intro'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## Load libraries
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(pbapply, data.table, tidyverse)
+
+if (!require("data.table")) install.packages("data.table")
+data.table::update.dev.pkg()
+```
+
+## Basic syntax
+
+Create a function (and assign it to an object):
+```
+my_func <- 
+function(ARGUMENTS) {
+  OPERATIONS
+  return(VALUE)
+}
+```
+Short functions can use a single line:
+```
+my_short_func <- function(ARGUMENTS) OPERATION
+```
+
+## Example
+
+```{r}
+square <-       ## Function name
+  function(x) { ## Argument(s) the function takes as input
+    x^2         ## Operation(s) the function performs
+  }
+
+square(3)
+```
+
+On one line:
+```{r}
+square <- function(x){x^2}
+square(4)
+```
+
+### Specifying return values
+
+Above, we didn't specify a return value for the function. By default, R returns the final object you created within the function. You won't always want this, so make a habit of specifying the return object:
+```{r}
+square <- 
+  function(x){
+    x_sq <- x^2   ## Create intermediary object (that will be returned)
+    return(x_sq)  ## The value(s) / object(s) to return
+  }
+square(5)
+```
+
+Specifying a return object is helpful when you want to return more than one object. Let's say we want to remind the use what variable they used as an argument in our function:
+```{r}
+square <- 
+  function(x){
+    x_sq <- x^2
+    return(list(value=x, value_squared=x_sq))
+  }
+square(6)
+```
+
+
+
+
+
