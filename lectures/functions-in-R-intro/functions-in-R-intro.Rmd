@@ -11,7 +11,7 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(pbapply, data.table, tidyverse)
 
 if (!require("data.table")) install.packages("data.table")
-data.table::update.dev.pkg()
+# data.table::update.dev.pkg()
 ```
 
 ## Basic syntax
@@ -36,7 +36,6 @@ square <-       ## Function name
   function(x) { ## Argument(s) the function takes as input
     x^2         ## Operation(s) the function performs
   }
-
 square(3)
 ```
 
@@ -67,6 +66,172 @@ square <-
   }
 square(6)
 ```
+
+We can make it return a tibble instead:
+
+```{r}
+square <- 
+  function(x){
+    x_sq <- x^2
+    df <- tibble(value=x, value_squared=x_sq) ## Bundle the input and output values into a convenient dataframe
+    return(df)
+  }
+square(7)
+```
+
+### Specifying default argument values
+
+```{r}
+square <- 
+  function(x = 1){  ## Set default argument value to 1
+    x_sq <- x^2
+    df <- tibble(value=x, value_squared=x_sq)
+    return(df)
+  }
+square() ## Leave argument blank to use default
+```
+
+#### Environments and lexical scoping
+
+None of the intermediate objects that we created within the above functions (`x_sq`, `df`, etc.) have entered the global environment.
+
+R has [lexical scoping](https://adv-r.hadley.nz/functions.html#lexical-scoping) rules, which govern where it stores and evalueates the values of different objects. Functions operate in a sort of sandboxed [environment](https://adv-r.hadley.nz/environments.html). They don't return or use objects in the global environment unless they're forced to (e.g. with a `return()` command). Also, a function will only look to outside environments (a level "up") to find an object if it can't be found within.
+
+## Control flow
+
+The order ("flow") of statements and operations out functions evaluate.
+
+### if and ifelse
+
+With an `if` condition, we can alert the user when the default value is used:
+```{r}
+square <- 
+  function(x = NULL){  ## Set initial default to NULL
+    if(is.null(x)) {
+      x=1  ## Reassign default to 1
+      message("No input value provided. Using defalut value of 1.")
+      }
+    x_sq <- x^2
+    df <- tibble(value=x, value_squared=x_sq)
+    return(df)
+  }
+square() ## Leave argument blank to use default
+```
+
+`ifelse()` statements are written as:
+```
+ifelse(CONDITION, DO IF TRUE, DO IF FALSE)
+```
+
+This uses `ifelse()` to test if the function is working as intended:
+```{r}
+eval_square <-
+  function(x) {
+    if (square(x)$value_squared == x*x) { ## Condition
+      ## What to do if condition is TRUE
+      message("Function working as intended")
+    } else {
+      ## What to do if condition is FALSE
+      message("Function is not working as intended")
+    }
+  }
+eval_square(64)
+```
+
+#### ifelse gotchas and alternatives
+
+Base R `ifelse()` works great normally. However, it behaves oddly when you return a date:
+```{r}
+## If argument=TRUE, return today's date
+## If argument=FALSE or something else, return yesterday's date
+today <- function(...) ifelse(..., Sys.Date(), Sys.Date()-1)
+today(TRUE)
+```
+It returns the date in number format, which is annoying.
+```{r}
+## Convert it to date format
+as.Date(today(TRUE), origin="1970-01-01")
+```
+
+**dplyr** and **data.table** provide their own functions which guard against this problem:
+
+* `dplyr::if_else()`
+* `data.table::fifelse()` ("fast if-else")
+
+### case when (nested ifelse)
+
+Nested `ifelse()` statements can be hard to read and troubleshoot:
+```
+ifelse(CONDITION1, DO IF TRUE, ifelse(CONDITION2, DO IF TRUE, ifelse(...)))
+```
+A better solution is to use `CASE WHEN`, which originally came from SQL. **dplyr** and **data.table** have functions for this:
+```{r, eval=FALSE}
+data.table::fcase(
+  x <= 3, "small",  ## Evaluated first
+  x <= 7, "medium", ## Evaluated second
+  default = "large" ## Defalut value
+)
+```
+
+```{r}
+x = 1:10
+dplyr::case_when(
+  x <= 3 ~ "small",  ## Evaulated first
+  x <= 7 ~ "medium", ## Evaluated second
+  TRUE ~ "large"     ## Default value. `x > 7 ~ "big"` also works
+)
+```
+
+It works with data frames/tables too:
+```{r}
+data.table(x = 1:10)[, grp := fcase(x <= 3, "small",
+                                    x <= 7, "medium",
+                                    default = "large")][]
+```
+
+```{r}
+tibble(x = 1:10) %>%
+  mutate(grp = case_when(x <= 3 ~ "small",
+                         x <= 7 ~ "medium",
+                         TRUE ~ "large"))
+```
+
+## Iteration
+
+You don't always need to iterate in R because it's a *vectorized* language, meaning you can apply a function to every element of a vector at once, rather than one at a time. For example, you can do this with the `:` operator, or with `c()`.
+```{r}
+square(1:5)
+```
+
+### for loops
+
+```{r}
+for(i in 1:5) print(LETTERS[i])
+```
+To "grow" an object via a *for* loop, we first must create an empty (or NULL) object:
+```{r}
+kelvin <- 300:305
+fahrenheit <- NULL
+# fahrenheit <- vector("double", length(kelvin))  ## Makes it work faster, because specifying the type and length allows R to more efficiently allocate memory
+
+for(k in 1:length(kelvin)) {
+  fahrenheit[k] <- kelvin[k] * 9/5 - 459.67
+}
+fahrenheit
+```
+Historically, basic *for* loops in R were slower than other methods. This has since been resolved, but *for* loops can clutter the global environment with intermediary objects. Also, they clash with the best practices of functional programming.
+
+### Functional programming
+
+
+
+
+
+
+
+
+
+
 
 
 
