@@ -14,8 +14,6 @@ if (!require("data.table")) install.packages("data.table")
 # data.table::update.dev.pkg()
 ```
 
-## Basic syntax
-
 Create a function (and assign it to an object):
 ```
 my_func <- 
@@ -29,7 +27,35 @@ Short functions can use a single line:
 my_short_func <- function(ARGUMENTS) OPERATION
 ```
 
-## Example
+**[An example](#an-example)**
+
+  * [Specifying return values](#specifying-return-values)
+  * [Specifying default argument values](#specifying-default-argument-values)
+    + [Environments and lexical scoping](#environments-and-lexical-scoping)
+    
+**[Control flow](#control-flow)**
+
+  * [if and ifelse](#if-and-ifelse)
+    + [ifelse gotchas and alternatives](#ifelse-gotchas-and-alternatives)
+    
+  * [case when (nested ifelse)](#case-when-(nested-ifelse))
+  
+**[Iteration](#iteration)**
+
+  * [for loops](#for-loops)
+  * [Functional programming](#functional-programming)
+    + [lapply and co.](#lapply-and-co.)
+    + [purrr](#purrr)
+    
+  * [Create and iterate over named functions](#create-and-iterate-over-named-functions)
+  * [Iterate over multiple inputs](#iterate-over-multiple-inputs)
+    + [`mapply()` and `pmap()`](#mapply()-and-pmap())
+    + [Using a data frame of input combinations](#using-a-data-frame-of-input-combinations)
+    
+**[Further resources](#further-resources)**
+
+
+## An example
 
 ```{r}
 square <-       ## Function name
@@ -183,7 +209,7 @@ dplyr::case_when(
 ```
 
 It works with data frames/tables too:
-```{r}
+```{r, eval=FALSE}
 data.table(x = 1:10)[, grp := fcase(x <= 3, "small",
                                     x <= 7, "medium",
                                     default = "large")][]
@@ -223,17 +249,187 @@ Historically, basic *for* loops in R were slower than other methods. This has si
 
 ### Functional programming
 
+*for* loops tend to emphasize the *objects* we're working with (e.g. a vector of numbers) rather than the *operations* we want to apply to them (e.g. get the mean or median). This is inefficient because it requires us to write out the for-loop by hand for each operation.
 
+*for* loops also pollute the global environment with counting variables like `i`, `k`, etc. And to "grow" an object as we iterate over it, we have to create an empty object first.
 
+FP has two implementations in R:
 
+* The `*apply` family of functions in base R
+* The `map*()` family of functions from **purr**.
 
+#### lapply and co.
 
+`lapply()` stands for *list apply* because it returns a list.
+```{r}
+lapply(1:3, function(i) LETTERS[i])
+```
+Note this does not create any global variables.
 
+`lapply()` can take vectors, data frames, lists, etc. as arguments, but the output will always be a list, where each element of the list is a result from one iteration of the loop.
 
+To get a data frame instead of a list, pipe the output to `dplyr::bind_rows()`.
+```{r}
+lapply(1:3, function(i) {
+  df <- tibble(num = i, let = LETTERS[i])
+  return(df)
+  }) %>%
+  bind_rows()
+```
 
+`sapply()` ("simplify apply") is a wrapper around `lapply()` that tries to return a simplified output that matches the input type. (e.g. if you feed it a vector, it will try to return a vector.)
 
+```{r}
+sapply(1:10, function(i) LETTERS[i])
+```
 
+**Progress bars:** `pbapply::pblapply()` is a wrapper around `lapply()` that adds progress bar and ETA functionality in the console.
 
+#### purrr
 
+Part of the tidyverse, **purr** offers enhanced implementations of the base `*apply()` functions. The main function is `purrr:map()`. Syntax is identical to `base::lapply()`:
 
+```{r, eval=FALSE}
+map(1:2, function(i) { ## only need to swap `lapply` for `map`
+  df <- tibble(num = i, let = LETTERS[i])
+  return(df)
+  })
+```
+
+```
+## [[1]]
+## # A tibble: 1 x 2
+##     num let  
+##   <int> <chr>
+## 1     1 A    
+## 
+## [[2]]
+## # A tibble: 1 x 2
+##     num let  
+##   <int> <chr>
+## 1     2 B    
+```
+
+`purrr::map_df()` returns a data frame instead of a list:
+```{r}
+map_df(1:3, function(i) { ## don't need bind_rows with `map_df`
+  df <- tibble(num = i, let = LETTERS[i])
+  return(df)
+  })
+```
+
+### Create and iterate over named functions
+
+We can split the function and the iteration into separate steps. This is good because typically we create functions with the goal of reusing them.
+
+```{r}
+## Create a named function
+num_to_alpha <- 
+  function(i) {
+  df <- tibble(num = i, let = LETTERS[i])
+  return(df)
+  }
+```
+
+Now iterate over the function using different input values:
+```{r}
+# lapply(1:3, num_to_alpha) %>% bind_rows()  ## Also works
+map_df(1:3, num_to_alpha)
+```
+
+### Iterate over multiple inputs
+
+We can iterate over e.g. 1:5, but what if a function has multiple inputs? Consider this function that takes two variables `x` and `y`, combines them in a data frame, and uses them to create a third variable `z`:
+```{r}
+## Create a named function
+multi_func <- 
+  function(x, y) {
+  df <- 
+    tibble(x = x, y = y) %>%
+    mutate(z = (x + y)/sqrt(x))
+  return(df)
+  }
+multi_func(1, 6)
+```
+
+There are two ways to iterate over both `x` and `y`:
+
+* use `mapply()` or `pmap()`
+* use a data frame of input combinations
+
+#### `mapply()` and `pmap()`
+
+`purrr::pmap()`
+```{r}
+## Note that the inputs must be combined in a list.
+pmap_df(list(x=1:3, y=6:8), multi_func)
+```
+
+`base::mapply()`
+```{r}
+## Note that the inputs are now moved to the *end* of the call. 
+## mapply is based on sapply, so we also have to tell it not to simplify if we want to keep the list structure.
+mapply(
+  multi_func,
+  x=1:3, ## Our "x" vector input
+  y=6:8, ## Our "y" vector input
+  SIMPLIFY = F ## Tell it not to simplify, to keep the list structure
+  ) %>%
+  bind_rows()
+```
+
+#### Using a data frame of input combinations
+
+"Cheat" by feeding multi-input functions a *single* data frame that specifies combinations of variables by row. This is good because:
+
+* You don't have to worry about accidentally feeding separate inputs of different lengths. (`pmap()` would at least fail and give you a helpful error message, but `mapply()` would complete with misaligned colummns.)
+* You can run a function over all possible combinations of different inputs. Use `base::expand.grid()` to generate a data frame of all combinations, and feed that as input to the function.
+* It's simpler and cleaner to organize your input into one object.
+
+Example:
+```{r}
+parent_func <-
+  ## Main function: Takes a single data frame as an input
+  function(input_df) {
+    df <-
+      ## Nested iteration function
+      map_df(
+      1:nrow(input_df), ## i.e. Iterate (map) over each row of the input data frame
+      function(n) {
+        ## Extract the `x` and `y` values from row "n" of the data frame
+        x <- input_df$x[n]
+        y <- input_df$y[n]
+        ## Use the extracted values
+        df <- multi_func(x, y)
+        return(df)
+      })
+    return(df)
+    }
+```
+There are three conceptual steps to the above code chunk:
+
+1. First, I create a new function called parent_func(), which takes a single input: a data frame containing x and y columns (and potentially other columns too).
+2. This input data frame is then passed to a second (nested) function, which will iterate over the rows of the data frame.
+3. During each iteration, the x and y values for that row are passed to our original multi_func() function. This will return a data frame containing the desired output.
+
+Let’s test that it worked using two different input data frames.
+
+```{r}
+## Case 1: Iterate over x=1:5 and y=6:10
+input_df1 <- tibble(x=1:3, y=6:8)
+parent_func(input_df1)
+```
+```{r}
+## Case 2: Iterate over *all possible combinations* of x=1:5 and y=6:10
+input_df2 <- expand.grid(x=1:3, y=6:8)
+# input_df2 <- expand(input_df1, x, y) ## Also works
+parent_func(input_df2)
+```
+
+## Further resources
+
+* [R for Data Science](http://r4ds.had.co.nz/) — esp. chapters [19 (“Functions”)](http://r4ds.had.co.nz/functions.html) and [21 (“Iteration”)](http://r4ds.had.co.nz/iteration.html) — covers much of the same ground as we have here, with emphasis on the purrr package for iteration.
+* In-depth: Hadley’s [Advanced R](https://adv-r.hadley.nz/) (2nd ed.) Covers all the concepts, including more on his (and R’s) philosophy on functional programming (see [Section ||](https://adv-r.hadley.nz/fp.html)).
+* Concise overview of the *apply() functions: [blog post](https://nsaunders.wordpress.com/2010/08/20/a-brief-introduction-to-apply-in-r/).
+* [purrr tutorial](https://jennybc.github.io/purrr-tutorial) mini-website. (Bonus: She goes into more depth about working with lists and list columns.)
 
