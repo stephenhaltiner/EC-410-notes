@@ -21,14 +21,14 @@ square <-
 [Catching user errors](#catching-user-errors)
 
   * [Function-specific control flow](#function-specific-control-flow)
-  * [base::tryCatch()](#base::trycatch())
+  * [base::tryCatch()](#base--trycatch())
   
     + [Wrap tryCatch() around an entire function](#wrap-trycatch()-around-an-entire-function)
     + [Use tryCatch() inside a function](#use-trycatch()-inside-a-function)
     
-  * [purrr::safely() and family](#purrr::safely()-and-family)
+  * [purrr::safely() and family](#purrr--safely()-and-family)
   
-[Caching (memoisation)](#caching-(memoisation)
+[Caching (memoisation)](#caching-(memoisation))
 
   * [Caching across R sessions](#caching-across-r-sessions)
   * [Verbose output](#verbose-output)

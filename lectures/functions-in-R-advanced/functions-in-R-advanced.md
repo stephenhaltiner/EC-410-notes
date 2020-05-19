@@ -7,16 +7,16 @@ Functions in R: Advanced
 
   - [Function-specific control flow](#function-specific-control-flow)
 
-  - [base::tryCatch()](#base::trycatch\(\))
+  - [base::tryCatch()](#base--trycatch\(\))
     
       - [Wrap tryCatch() around an entire
         function](#wrap-trycatch\(\)-around-an-entire-function)
       - [Use tryCatch() inside a
         function](#use-trycatch\(\)-inside-a-function)
 
-  - [purrr::safely() and family](#purrr::safely\(\)-and-family)
+  - [purrr::safely() and family](#purrr--safely\(\)-and-family)
 
-[Caching (memoisation)](#caching-memoisation)(\#caching-(memoisation)
+[Caching (memoisation)](#caching-\(memoisation\))
 
   - [Caching across R sessions](#caching-across-r-sessions)
   - [Verbose output](#verbose-output)
@@ -272,7 +272,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.046   0.001  10.070
+    ##   0.048   0.000  10.074
 
 ``` r
 ## Run second time
@@ -282,7 +282,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.003   0.000   0.004
+    ##   0.003   0.000   0.003
 
 You could verify that the results are equal:
 
@@ -302,7 +302,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.011   0.001   5.026
+    ##   0.011   0.000   5.028
 
 ### Caching across R sessions
 
