@@ -10,3 +10,4 @@
 * [Webscraping (API)](https://github.com/stephenhaltiner/EC-410-notes/blob/master/lectures/webscraping-api/webscraping-api.md)
 * [Functions in R: Intro](https://github.com/stephenhaltiner/EC-410-notes/blob/master/lectures/functions-in-R-intro/functions-in-R-intro.md)
 * [Functions in R: Advanced](https://github.com/stephenhaltiner/EC-410-notes/blob/master/lectures/functions-in-R-advanced/functions-in-R-advanced.md)
+* [Parallel programming](https://github.com/stephenhaltiner/EC-410-notes/blob/master/lectures/parallel-programming/parallel-programming.md)
