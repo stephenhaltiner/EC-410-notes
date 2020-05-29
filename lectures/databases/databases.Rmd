@@ -1,0 +1,261 @@
+---
+title: "Databases"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## Load/install packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, DBI, dbplyr, RSQLite, bigrquery, hrbrthemes, nycflights13, glue)
+## My preferred ggplot2 theme (optional)
+theme_set(hrbrthemes::theme_ipsum())
+```
+
+## Databases 101
+
+Many "big data" problems could be described as "small data problems in disguise", meaning the data we care about is just a small subset or aggregation of a larger dataset. For example, we might want to access US Census data...but only for a few counties along a state border. Or, we might want to analyze climate data collected from many weather stations...but aggregated to the national/monthly level. In these cases, the bottleneck is interacting with the original data, which is too large to fit in memory. We can store and access this data with **relational databases**.
+
+Databases can exist locally or remotely (though remotely is more common). They are stored *on-disk* somewhere, rather than in-memory. We extract the information we want by submitting a *query* to the database. In the query, we can request that the data be manipulated or subsetted in a certain way before it is delivered to us.
+
+**A table in a database is like a data frame in an R list.**
+
+## Databases and the tidyverse
+
+**dbplyr** allows for direct communication with databases from your local R environment. It's provides a database backend to **dplyr**. It depends on the **DBI** package, which provides a common interface to allow **dplyr** to work with many different databases using the same type of code.
+
+For **DBI** to work, you must install a specific backend package for the type of database you want to connect to. [Here](https://db.rstudio.com/dplyr/#getting-started) is a list of commonly used backend packages. We will use:
+
+* **RSQLite**, which embeds a SQLite database.
+* **bigrquery**, which connects to Google BigQuery.
+
+SQLite is a lightweight SQL database engine that can exist on our local computers (no need to connect to a server). BigQuery is a convenient way to get data if you already have a Google Cloud account.
+
+## Getting started with SQLite
+
+(For more, see RStudio's [Databases using dplyr](https://db.rstudio.com/dplyr) tutorial.)
+
+### Connecting to a database
+
+Start by opening an (empty) database connection via the `DBI::dbConnect()` function, which we'll call `con`. Note, we are calling the **RSQLite** package in the backgroud for the SQLite backend and telling R this is a local connection that exists in memory.
+
+```{r}
+# library(DBI)
+con <- dbConnect(RSQLite::SQLite(), path = ":memory:")
+```
+
+The first argument is the database backend, i.e. `RSQLite::SQLite()` since that's what we're using in this case. SQLite only needs one other argument: the `path` to the database. We use the special string `":memory:"` which causes SQLite to create a temporary, in-memory database.
+
+Our makeshift database is empty, so let's copy in the *flights* dataset from the **nycflights13** package. We'll use `dplyr::copy_to()` to do that.
+
+The indexes enable efficient database performance. These are set by the database host platform or maintainer in normal applications.
+
+```{r}
+# library(nycflights13)
+# library(dplyr)
+
+copy_to(
+  dest = con,
+  df = nycflights13::flights,
+  name = "flights",
+  temporary = FALSE,
+  indexes = list(
+    c("year", "month", "day"),
+    "carrier",
+    "tailnum",
+    "dest"
+    )
+  )
+```
+
+Now that we've copied the data to the database, we can reference it via `dplyr::tbl()`:
+
+```{r}
+# library(dbplyr)
+
+flights_db <- tbl(con, "flights")
+flights_db
+```
+
+### Generating queries
+
+**dplyr** auto-translates tidyverse style code into SQL. Some examples:
+
+```{r}
+## Select some columns
+flights_db %>% select(year:day, dep_delay, arr_delay)
+```
+
+```{r}
+## Filter according to a condition
+flights_db %>% filter(dep_delay > 240)
+```
+
+```{r}
+## Get the mean delay by destination
+flights_db %>%
+  group_by(dest) %>%
+  summarise(delay = mean(dep_time)) %>%
+  arrange(desc(delay))
+```
+
+### Laziness as a virtue
+
+**dplyr** tries to be as "lazy" as possible. Your R code is translated into SQL and executed in the database, not in R. This is good because:
+
+* It never pulls data into R unless you explicitly ask.
+* It delays doing any work until the last possible moment: it collects everything you want to do and sends it to the database in one step.
+
+For example, if we're interested in the mean departure and arrival delays for each plane (unique tail number):
+
+```{r}
+tailnum_delay_db <- 
+  flights_db %>%
+  group_by(tailnum) %>%
+  summarise(
+    mean_dep_delay = mean(dep_delay),
+    mean_arr_delay = mean(arr_delay),
+    n = n()                            ## Count number of obs.
+  ) %>%
+  arrange(desc(mean_arr_delay)) %>%
+  filter(n >= 100)
+```
+
+This sequence of operations never even touches the database. It's not until you ask for the data (e.g. by calling `tailnum_delay_db`) that **dplyr** actually generates the SQL and requests the results from the database. Even then, it limits the number of rows it pulls:
+
+```{r}
+tailnum_delay_db
+```
+
+### Collect the data into your local R environment
+
+Typically you'll iterate a few times before figuring out what data you need from the database. Then, use `collect()` to pull it into a local data frame:
+
+```{r}
+tailnum_delay <- 
+  tailnum_delay_db %>%
+  collect()
+tailnum_delay
+```
+Now we see it has 1,218 rows. It's stored as a data frame, so we can use it just like any other.
+
+Question: What is the relationship between late departures and late arrivals?
+
+```{r}
+tailnum_delay %>%
+  ggplot(aes(x = mean_dep_delay,
+             y = mean_arr_delay,
+             size = n)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1, col = "orange") +
+  coord_fixed()
+```
+
+Assuming we're finished querying our SQLite database, we'd disconnect from it by calling `DBI::dbDisconnect(con)`.
+
+## Using SQL directly in R
+
+### Translate with dplyr::show_query()
+
+Behind the scenes, **dplyr** is translating your R code to SQL. Use `show_query()` to display the SQL code that was used to generate a queried table:
+
+```{r}
+tailnum_delay_db %>%
+  show_query()
+```
+
+There are some translation artifacts, because dplyr implements safeguards to ensure the translated SQL will absolutely work. This explains the repeated `SELECT` commands.
+
+SQL uses a *lexical* order of operations that doesn't always preserve the *logical* order of operations, meaning the way we write a query is not the same way we think through a query. (SQL has a strict "order of execution", so there is a hierarchy of commands.) [Here](https://wizardzines.com/zines/sql/samples/from.png) is a graphic explaining it, from the zine ["Become a Select Star"](https://wizardzines.com/zines/sql/).
+
+The main confusion point is, we always write `SELECT` first, even though `SELECT` doesn't come into play until later in the query's logic.
+
+The **DBI** package lets you write and submit SQL queries directly from R.
+
+```{r}
+## Show the equivalent SQL query for a group of dplyr commands
+flights_db %>% filter(dep_delay > 240) %>% head(5) %>% show_query()
+```
+
+Note: the backticks around object names, and the parentheses around `WHERE`, are just safeguards that are not always necessary.
+
+### Option 1: Use R Markdown `sql` chunks
+
+Just use the header ```` ```{sql, connection = con} ```` instead of ```` ```{r} ````. (Change `con` to your own database connection.)
+
+Once knitted, this looks like:
+
+```{sql, connection = con}
+SELECT *
+FROM flights
+WHERE dep_delay > 240
+LIMIT 5
+```
+
+### Option 2: Use DBI::dbGetQuery()
+
+To run SQL queries in regular R scripts, use `DBI::dbGetQuery()`:
+
+```{r}
+## Run the query using SQL directly on the connection.
+dbGetQuery(con, "SELECT * FROM flights WHERE dep_delay > 240 LIMIT 5")
+```
+
+### Recommendation: Use glue::glue_sql()
+
+Grant recommends the `glue_sql()` function from **glue**, part of the tidyverse. It provides a more integrated approach that lets you use local R variables in your SQL queries, and divide long queries into sub-queries.
+
+```{r}
+## Using R variables in a SQL query
+
+# library(glue)
+
+## Some local R variables
+tbl <- "flights"
+d_var <- "dep_delay"
+d_thresh <- 240
+
+## The "glued" SQL query string
+sql_query <-
+  glue_sql("
+  SELECT *
+  FROM {`tbl`}
+  WHERE ({`d_var`} > {d_thresh})
+  LIMIT 5
+  ", 
+  .con = con
+  )
+
+## Run the query
+dbGetQuery(con, sql_query)
+```
+`glue_sql()` really pays off when working with large, nested queries. [Documentation here](https://glue.tidyverse.org/reference/glue_sql.html).
+
+### Disconnect
+
+```{r}
+## Terminate connection with the database
+dbDisconnect(con)
+```
+
+## Google BigQuery
+
+There are tons of public datasets available on BigQuery. The console has a nice web UI too.
+
+Here is a [tutorial](https://towardsdatascience.com/bigquery-without-a-credit-card-discover-learn-and-share-199e08d4a064) for using BigQuery to determine who is the most popular Alan (measured by Wikipedia page views).
+
+To use the **bigrquery** package, you must provide your GCP project billing ID. We stored our credentials in the `.Renviron` file in our home directory during the cloud computing lecture. In that case, you can call it using `Sys.getenv()`.
+
+```{r}
+# library(bigrquery)
+billing_id <- Sys.getenv("GCE_DEFAULT_PROJECT_ID")  ## Replace with your project ID if this doesn't work
+```
+
+### Example 1: US birth data
+
+
+
+
+
+
