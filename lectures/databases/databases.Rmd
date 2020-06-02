@@ -13,7 +13,42 @@ pacman::p_load(tidyverse, DBI, dbplyr, RSQLite, bigrquery, hrbrthemes, nycflight
 theme_set(hrbrthemes::theme_ipsum())
 ```
 
-## Databases 101
+#### Learning and practicing SQL
+
+**dplyr**'s `show_query()` function is a great way to get started. So is the [SQL translation vignette](https://dbplyr.tidyverse.org/articles/sql-translation.html).
+
+The best way to learn is to write your own queries. The [BigQuery UI](https://console.cloud.google.com/bigquery) is helpful for this.
+
+#### Resources
+
+* ["Getting Global Fishing Watch Data from Google BigQuery using R](http://jsmayorga.com/post/getting-global-fishing-watch-from-google-bigquery-using-r)
+* Julia Evans' [*Become A Select Star*](https://wizardzines.com/zines/sql/)
+* Official BigQuery [documentation](https://cloud.google.com/bigquery/docs/) overviews the functions and syntax for "standard SQL"
+
+#### Contents
+
+- [Databases and the tidyverse](#databases-and-the-tidyverse)
+
+- [Getting started with SQLite](#getting-started-with-sqlite)
+
+  * [Connecting to a database](#connecting-to-a-database)
+  * [Generating queries](#generating-queries)
+  * [Laziness as a virtue](#laziness-as-a-virtue)
+  * [Collect the data into your local R environment](#collect-the-data-into-your-local-r-environment)
+  
+- [Using SQL directly in R](#using-sql-directly-in-r)
+
+  * [Translate with dplyr::show_query()](#translate-with-dplyr--show-query--)
+  * [Option 1: Use R Markdown `sql` chunks](#option-1--use-r-markdown--sql--chunks)
+  * [Option 2: Use DBI::dbGetQuery()](#option-2--use-dbi--dbgetquery--)
+  * [Recommendation: Use glue::glue_sql()](#recommendation--use-glue--glue-sql--)
+  * [Disconnect](#disconnect)
+  
+- [Google BigQuery](#google-bigquery)
+
+  * [Example 1: US birth data](#example-1--us-birth-data)
+  * [Example 2: Global Fishing Watch](#example-2--global-fishing-watch)
+
 
 Many "big data" problems could be described as "small data problems in disguise", meaning the data we care about is just a small subset or aggregation of a larger dataset. For example, we might want to access US Census data...but only for a few counties along a state border. Or, we might want to analyze climate data collected from many weather stations...but aggregated to the national/monthly level. In these cases, the bottleneck is interacting with the original data, which is too large to fit in memory. We can store and access this data with **relational databases**.
 
@@ -248,14 +283,195 @@ Here is a [tutorial](https://towardsdatascience.com/bigquery-without-a-credit-ca
 To use the **bigrquery** package, you must provide your GCP project billing ID. We stored our credentials in the `.Renviron` file in our home directory during the cloud computing lecture. In that case, you can call it using `Sys.getenv()`.
 
 ```{r}
-# library(bigrquery)
+library(bigrquery)
 billing_id <- Sys.getenv("GCE_DEFAULT_PROJECT_ID")  ## Replace with your project ID if this doesn't work
 ```
 
 ### Example 1: US birth data
 
+Establish a connection using `DBI::dbConnect()`:
+```{r}
+# library(DBI)
+# library(dplyr)
+
+bq_con <- 
+  dbConnect(
+    bigrquery::bigquery(),  ## Specify the BigQuery backend
+    project = "publicdata",
+    dataset = "samples",
+    billing = billing_id  ## Provide credentials
+    )
+```
+
+This connection works for any tables in the database. Set up auto-authentication, then list the tables:
+
+```{r}
+bq_auth(path = Sys.getenv("GCE_AUTH_FILE")) ## Or you could authenticate manually instead
+ 
+dbListTables(bq_con)
+```
+
+Create a pointer to the "natality" table in our local environment:
+```{r}
+natality <- tbl(bq_con, "natality")
+```
+
+Summarize as mean, and collect data into our session:
+```{r}
+bw <- 
+  natality %>%
+  filter(!is.na(state)) %>% ## remove some outliers
+  group_by(year) %>%
+  summarise(weight_pounds = mean(weight_pounds, na.rm=T)) %>%
+  collect()
+```
+
+```{r}
+bw %>%
+  ggplot(aes(year, weight_pounds)) +
+  geom_line()
+```
+
+Query again, but grouping by year, state, and gender:
+```{r}
+bw_st <- 
+  natality %>%
+  filter(!is.na(state)) %>%
+  group_by(year, state, is_male) %>%
+  summarise(weight_pounds = mean(weight_pounds, na.rm=T)) %>%
+  mutate(gender = ifelse(is_male, "Male", "Female")) %>%
+  collect()
+```
+
+```{r}
+## Select arbitrary states to highlight
+states <- c("CA","DC","OR","TX","VT")
+## Rearranging the data will help with the legend ordering
+bw_st <- bw_st %>% arrange(gender, year)
+
+## Plot it
+bw_st %>%
+  ggplot(aes(year, weight_pounds, group=state)) + 
+  geom_line(col="grey75", lwd = 0.25) + 
+  geom_line(
+    data = bw_st %>% filter(state %in% states), 
+    aes(col=fct_reorder2(state, year, weight_pounds)),
+    lwd=0.75
+    ) +
+  facet_wrap(~gender) + 
+  scale_color_brewer(palette = "Set1", name=element_blank()) +
+  labs(
+    title = "Mean birth weight, by US state over time",
+    subtitle = "Selected states highlighted",
+    x = NULL, y = "Pounds",
+    caption = "Data sourced from Google BigQuery"
+    ) + 
+  theme_ipsum(grid=F)
+```
+
+Remember to disconnect.
+```{r}
+dbDisconnect(bq_con)
+```
+
+### Example 2: Global Fishing Watch
+
+```{r}
+gfw_con <- 
+  dbConnect(
+    bigrquery::bigquery(),
+    project = "global-fishing-watch",
+    dataset = "global_footprint_of_fisheries",
+    billing = billing_id
+    )
+```
+
+```{r}
+dbListTables(gfw_con)
+```
+
+```{r}
+effort <- tbl(gfw_con, "fishing_effort")
+effort
+```
+
+Which country fishes the most?
+
+```{r}
+effort %>%
+  group_by(flag) %>%
+  summarise(total_fishing_hours = sum(fishing_hours, na.rm = T)) %>%
+  arrange(desc(total_fishing_hours)) %>%
+  collect()
+```
+
+#### Date partitioning
+
+Many tables in BigQuery are *date partitioned*, i.e. ordered according to timestamps of when the data were ingested. This provides a more cost-effective way to query datasets. But, it necessitates a minor tweak to how we query or manipulate this GFW data by date.
+
+In native SQL we reference a special `_PARTITIONTIME` pseudo-column in order to, say, filter by date. There is no exact **dplyr** translation for this pseudo-column. But, we can specify it as a SQL variable in our **dplyr** call using backticks:
+
+```{r}
+effort %>%
+  filter(
+    `_PARTITIONTIME` >= "2016-01-01 00:00:00",
+    `_PARTITIONTIME` < "2017-01-01 00:00:00"
+    ) %>%
+  group_by(flag) %>%
+  summarise(total_fishing_hours = sum(fishing_hours, na.rm=T)) %>%
+  arrange(desc(total_fishing_hours)) %>%
+  collect()
+```
+
+#### Global fishing effort in 2016
+
+```{r}
+## Define the desired bin resolution in degrees (longitude/latitude)
+resolution <- 1
+
+globe <-
+  effort %>%
+  filter(
+    `_PARTITIONTIME` >= "2016-01-01 00:00:00",
+    `_PARTITIONTIME` <= "2016-12-31 00:00:00"
+    ) %>%
+  filter(fishing_hours > 0) %>%
+  mutate(
+    lat_bin = lat_bin/100,  ## Normalize data (not super important)
+    lon_bin = lon_bin/100
+    ) %>%
+  mutate(  ## Find center of the 1-degree square bins, and round observations to the bin centers
+    lat_bin_center = floor(lat_bin/resolution)*resolution + 0.5*resolution,
+    lon_bin_center = floor(lon_bin/resolution)*resolution + 0.5*resolution
+    ) %>%
+  group_by(lat_bin_center, lon_bin_center) %>%
+  summarise(fishing_hours = sum(fishing_hours, na.rm=T)) %>%
+  collect()
+```
 
 
+```{r}
+globe %>% 
+  filter(fishing_hours > 1) %>% 
+  ggplot() +
+  geom_tile(aes(x=lon_bin_center, y=lat_bin_center, fill=fishing_hours))+
+  scale_fill_viridis_c(
+    name = "Fishing hours (log scale)",
+    trans = "log",
+    breaks = scales::log_breaks(n = 5, base = 10),
+    labels = scales::comma
+    ) +
+  labs(
+    title = "Global fishing effort in 2016",
+    subtitle = paste0("Effort binned at the ", resolution, "° level."),
+    y = NULL, x = NULL,
+    caption = "Data from Global Fishing Watch"
+    ) +
+  theme_ipsum(grid=F) +
+  theme(axis.text=element_blank())
+```
 
-
+```{r}
+dbDisconnect(gfw_con)
+```
 
