@@ -1,0 +1,21 @@
+---
+title: "Spark"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if (!require("sparklyr")) install.packages("sparklyr")
+# sparklyr::spark_available_versions() ## list all available versions
+sparklyr::spark_install(version = "2.3.0")
+```
+
+## 
+
+```{r}
+## Set an environment variable pointing to your Java 8 installation
+Sys.setenv(JAVA_HOME = "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home")
+## You could put it in your .Renviron file too
+```
+
